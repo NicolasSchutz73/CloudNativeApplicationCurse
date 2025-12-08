@@ -1,5 +1,10 @@
 # Gym Management System
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=NicolasSchutz73_CloudNativeApplicationCurse&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=NicolasSchutz73_CloudNativeApplicationCurse)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=NicolasSchutz73_CloudNativeApplicationCurse&metric=bugs)](https://sonarcloud.io/summary/new_code?id=NicolasSchutz73_CloudNativeApplicationCurse)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=NicolasSchutz73_CloudNativeApplicationCurse&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=NicolasSchutz73_CloudNativeApplicationCurse)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=NicolasSchutz73_CloudNativeApplicationCurse&metric=coverage)](https://sonarcloud.io/summary/new_code?id=NicolasSchutz73_CloudNativeApplicationCurse)
+
 A complete fullstack gym management application built with modern web technologies.
 
 ## Features
@@ -337,11 +342,20 @@ ci: configuration du workflow GitHub Actions
 ### CI/CD Pipeline
 
 **GitHub Actions workflows :**
-- ✅ **Lint Frontend** - Vérifie le code avec ESLint
-- ✅ **Validate Commit Messages** - Vérifie les commits de la PR
+- ✅ **Lint** - Vérifie le code frontend et backend avec ESLint
+- ✅ **Build** - Compile frontend et backend
+- ✅ **Tests** - Exécute les tests backend
+- ✅ **SonarCloud** - Analyse qualité du code backend avec Quality Gate
+
+**Pipeline Jobs (tous sur self-hosted runner) :**
+1. **Lint Job** : Vérifie la qualité du code (frontend + backend)
+2. **Build Job** : Compile les applications (frontend + backend)
+3. **Test Job** : Exécute les tests unitaires backend
+4. **SonarCloud Job** : Analyse de code et Quality Gate
 
 **Status checks requis :**
-- `Lint Frontend` doit passer avant merge
+- Tous les jobs CI doivent passer avant merge
+- SonarCloud Quality Gate doit être validé
 - Branch doit être à jour avec la branche cible
 
 ## License

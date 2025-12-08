@@ -199,15 +199,7 @@ export default {
   border-radius: 12px;
   font-size: 0.8em;
   font-weight: bold;
-}
-
-.user-role {
   background-color: #dc3545;
-  color: white;
-}
-
-.user-role {
-  background-color: #28a745;
   color: white;
 }
 

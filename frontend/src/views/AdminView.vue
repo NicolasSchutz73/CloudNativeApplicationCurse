@@ -809,10 +809,6 @@ export default {
   color: #666;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
-}
-
-.tab-button {
-  color: #007bff;
   border-bottom-color: #007bff;
 }
 
