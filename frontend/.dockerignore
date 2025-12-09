@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Development files
+.git
+.gitignore
+.vscode
+.idea
+.claude
+*.md
+README.md
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test files
+coverage
+.nyc_output
+*.test.js
+*.spec.js
+__tests__
+__mocks__
+
+# Build output (for development)
+dist
+.cache
+
+# Logs
+logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Vite
+vite.config.js.timestamp-*
