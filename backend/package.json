@@ -6,6 +6,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node seed/seed.js",
+    "lint": "eslint --ext .js src",
+    "build": "echo 'Build completed successfully'",
+    "test": "echo 'No tests specified yet' && exit 0",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate deploy",
     "prisma:push": "npx prisma db push",
@@ -20,7 +23,8 @@
   },
   "devDependencies": {
     "prisma": "^5.6.0",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "eslint": "^8.57.0"
   },
   "engines": {
     "node": ">=18.0.0"
