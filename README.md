@@ -7,48 +7,6 @@
 
 A complete fullstack gym management application built with modern web technologies.
 
-## Features
-
-### User Features
-- **User Dashboard**: View stats, billing, and recent bookings
-- **Class Booking**: Book and cancel fitness classes
-- **Subscription Management**: View subscription details and billing
-- **Profile Management**: Update personal information
-
-### Admin Features
-- **Admin Dashboard**: Overview of gym statistics and revenue
-- **User Management**: CRUD operations for users
-- **Class Management**: Create, update, and delete fitness classes
-- **Booking Management**: View and manage all bookings
-- **Subscription Management**: Manage user subscriptions
-
-### Business Logic
-- **Capacity Management**: Classes have maximum capacity limits
-- **Time Conflict Prevention**: Users cannot book overlapping classes
-- **Cancellation Policy**: 2-hour cancellation policy (late cancellations become no-shows)
-- **Billing System**: Dynamic pricing with no-show penalties
-- **Subscription Types**: Standard (€30), Premium (€50), Student (€20)
-
-## Tech Stack
-
-### Backend
-- **Node.js** with Express.js
-- **Prisma** ORM with PostgreSQL
-- **RESTful API** with proper error handling
-- **MVC Architecture** with repositories pattern
-
-### Frontend
-- **Vue.js 3** with Composition API
-- **Pinia** for state management
-- **Vue Router** with navigation guards
-- **Responsive CSS** styling
-
-### DevOps
-- **Docker** containerization
-- **Docker Compose** for orchestration
-- **PostgreSQL** database
-- **Nginx** for frontend serving
-
 ## Quick Start
 
 ### Prerequisites
@@ -365,3 +323,16 @@ This project is licensed under the MIT License.
 ## Support
 
 For support or questions, please open an issue in the repository.
+
+
+## TP 3 : 
+
+PART 1 : 
+![img.png](img.png)
+
+![img_1.png](img_1.png)
+
+PART 2 :
+
+![img_2.png](img_2.png)
+

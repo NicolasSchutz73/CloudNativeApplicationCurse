@@ -119,3 +119,47 @@ jobs:
           scanMetadataReportFile: backend/.scannerwork/report-task.txt
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  docker:
+    name: Build and Push Docker Images
+    runs-on: self-hosted
+    needs: [build, test, sonarcloud]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Docker Image
+        run: docker build -t backend-ci ./backend
+
+      - name: Build Frontend Docker Image
+        run: docker build -t frontend-ci ./frontend
+
+      - name: Healthcheck Backend
+        run: |
+          docker run -d --name backend-test -e DATABASE_URL="postgresql://test:test@localhost:5432/test" backend-ci
+          sleep 5
+          docker ps | grep backend-test
+          docker stop backend-test
+          docker rm backend-test
+
+      - name: Healthcheck Frontend
+        run: |
+          docker run -d --name frontend-test frontend-ci
+          sleep 3
+          docker ps | grep frontend-test
+          docker stop frontend-test
+          docker rm frontend-test
+
+      - name: Login to GitHub Container Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Tag and Push Backend
+        run: |
+          docker tag backend-ci ghcr.io/${{ github.repository_owner }}/cloudnative-backend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/cloudnative-backend:${{ github.sha }}
+
+      - name: Tag and Push Frontend
+        run: |
+          docker tag frontend-ci ghcr.io/${{ github.repository_owner }}/cloudnative-frontend:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/cloudnative-frontend:${{ github.sha }}
