@@ -13,7 +13,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci --only=production && \
+RUN npm ci && \
     npm cache clean --force
 
 # Generate Prisma Client
@@ -21,9 +21,11 @@ RUN npx prisma generate
 
 # Copy application source
 COPY . .
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 RUN npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+ENTRYPOINT ["docker-entrypoint.sh"]
