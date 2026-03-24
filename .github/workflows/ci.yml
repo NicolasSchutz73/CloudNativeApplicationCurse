@@ -3,10 +3,14 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - main
+      - develop
   pull_request:
     branches:
-      - main
+      - develop
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   lint:
@@ -124,6 +128,7 @@ jobs:
     name: Build and Push Docker Images
     runs-on: self-hosted
     needs: [build, test, sonarcloud]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
 
     steps:
       - name: Checkout code
@@ -165,3 +170,25 @@ jobs:
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           docker tag frontend-ci ghcr.io/${OWNER}/cloudnative-frontend:${{ github.sha }}
           docker push ghcr.io/${OWNER}/cloudnative-frontend:${{ github.sha }}
+
+  deploy:
+    name: Deploy Application
+    runs-on: self-hosted
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Make deploy script executable
+        run: chmod +x scripts/deploy.sh
+
+      - name: Deploy latest published images
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+        run: ./scripts/deploy.sh

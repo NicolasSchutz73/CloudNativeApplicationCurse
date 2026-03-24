@@ -22,6 +22,7 @@ services:
 
   # Backend API
   backend:
+    image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -42,6 +43,7 @@ services:
 
   # Frontend Vue.js
   frontend:
+    image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
