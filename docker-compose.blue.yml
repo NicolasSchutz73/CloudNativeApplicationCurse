@@ -1,12 +1,11 @@
 services:
   backend-blue:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-backend:${BLUE_IMAGE_TAG:-latest}
-    container_name: backend-blue
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      NODE_ENV: ${NODE_ENV}
-      PORT: ${PORT}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-gym_management}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
       FRONTEND_URL: http://localhost
     depends_on:
       postgres:
@@ -21,7 +20,6 @@ services:
 
   frontend-blue:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-frontend:${BLUE_IMAGE_TAG:-latest}
-    container_name: frontend-blue
     restart: unless-stopped
     depends_on:
       backend-blue:

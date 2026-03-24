@@ -11,6 +11,8 @@ ACTIVE_UPSTREAM_FILE="${ACTIVE_UPSTREAM_FILE:-${ROOT_DIR}/proxy/upstreams/active
 PROXY_CONTAINER="${PROXY_CONTAINER:-reverse-proxy}"
 HEALTHCHECK_RETRIES="${HEALTHCHECK_RETRIES:-30}"
 HEALTHCHECK_SLEEP_SECONDS="${HEALTHCHECK_SLEEP_SECONDS:-2}"
+NETWORK_NAME="${NETWORK_NAME:-gym-bluegreen-network}"
+VOLUME_NAME="${VOLUME_NAME:-gym-postgres-data}"
 
 : "${GITHUB_SHA:?GITHUB_SHA must be set}"
 : "${GHCR_OWNER:?GHCR_OWNER must be set}"
@@ -52,6 +54,16 @@ service_names() {
   fi
 }
 
+base_compose() {
+  compose -f "${BASE_COMPOSE}" "$@"
+}
+
+service_container_id() {
+  local compose_file="$1"
+  local service_name="$2"
+  compose -f "${BASE_COMPOSE}" -f "${compose_file}" ps -q "${service_name}"
+}
+
 write_active_upstream() {
   local color="$1"
   cat <<EOF > "${ACTIVE_UPSTREAM_FILE}"
@@ -62,11 +74,14 @@ EOF
 
 wait_for_service_health() {
   local service_name="$1"
+  local compose_file="$2"
   local attempt=1
 
   while (( attempt <= HEALTHCHECK_RETRIES )); do
     local status
-    status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${service_name}" 2>/dev/null || true)"
+    local container_id
+    container_id="$(service_container_id "${compose_file}" "${service_name}")"
+    status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "${container_id}" 2>/dev/null || true)"
     if [[ "${status}" == "healthy" || "${status}" == "running" ]]; then
       echo "Service ${service_name} is ${status}"
       return 0
@@ -78,7 +93,9 @@ wait_for_service_health() {
   done
 
   echo "Service ${service_name} did not become healthy in time" >&2
-  docker logs "${service_name}" || true
+  local container_id
+  container_id="$(service_container_id "${compose_file}" "${service_name}")"
+  docker logs "${container_id}" || true
   return 1
 }
 
@@ -101,12 +118,26 @@ ensure_base_stack() {
     write_active_upstream "blue"
   fi
 
-  compose -f "${BASE_COMPOSE}" up -d
+  docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1 || docker network create "${NETWORK_NAME}" >/dev/null
+  docker volume inspect "${VOLUME_NAME}" >/dev/null 2>&1 || docker volume create "${VOLUME_NAME}" >/dev/null
+
+  base_compose up -d
 }
 
 color_is_running() {
   local color="$1"
-  docker inspect "backend-${color}" >/dev/null 2>&1 && docker inspect "frontend-${color}" >/dev/null 2>&1
+  local compose_file service_id
+
+  if [[ "${color}" == "blue" ]]; then
+    compose_file="${BLUE_COMPOSE}"
+  else
+    compose_file="${GREEN_COMPOSE}"
+  fi
+
+  service_id="$(service_container_id "${compose_file}" "backend-${color}")"
+  [[ -n "${service_id}" ]] || return 1
+  service_id="$(service_container_id "${compose_file}" "frontend-${color}")"
+  [[ -n "${service_id}" ]]
 }
 
 active_color="$(tr -d '[:space:]' < "${ACTIVE_COLOR_FILE}" 2>/dev/null || true)"
@@ -149,15 +180,21 @@ cd "${ROOT_DIR}"
 ensure_base_stack
 compose_color "${target_color}" up -d
 
+if [[ "${target_color}" == "blue" ]]; then
+  target_compose_file="${BLUE_COMPOSE}"
+else
+  target_compose_file="${GREEN_COMPOSE}"
+fi
+
 for service in $(service_names "${target_color}"); do
-  wait_for_service_health "${service}"
+  wait_for_service_health "${service}" "${target_compose_file}"
 done
 
 write_active_upstream "${target_color}"
 echo "${target_color}" > "${ACTIVE_COLOR_FILE}"
 
 echo "Reloading Nginx in ${PROXY_CONTAINER}"
-docker exec "${PROXY_CONTAINER}" nginx -s reload
+base_compose exec -T reverse-proxy nginx -s reload
 
 verify_proxy "${target_color}"
 
