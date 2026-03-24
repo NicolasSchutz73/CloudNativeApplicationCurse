@@ -370,3 +370,11 @@ Le déploiement automatique nécessite :
 - `ghcr.io/${GHCR_OWNER}/cloudnative-frontend:${IMAGE_TAG}`
 
 En CI, `IMAGE_TAG` est positionné automatiquement sur le SHA du commit déployé. En local, la valeur par défaut reste `latest`, et `docker compose up --build` reste utilisable pour le développement.
+
+![img_5.png](img_5.png)
+
+![img_6.png](img_6.png)
+
+![img_7.png](img_7.png)
+
+![img_8.png](img_8.png)
