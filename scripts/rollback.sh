@@ -3,9 +3,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BASE_COMPOSE="${ROOT_DIR}/docker-compose.base.yml"
 ACTIVE_COLOR_FILE="${ACTIVE_COLOR_FILE:-${ROOT_DIR}/proxy/state/active_color}"
 ACTIVE_UPSTREAM_FILE="${ACTIVE_UPSTREAM_FILE:-${ROOT_DIR}/proxy/upstreams/active-upstream.conf}"
-PROXY_CONTAINER="${PROXY_CONTAINER:-reverse-proxy}"
 
 target_color="${ROLLBACK_TO:-${1:-}}"
 
@@ -22,6 +22,6 @@ EOF
 
 echo "${target_color}" > "${ACTIVE_COLOR_FILE}"
 
-docker exec "${PROXY_CONTAINER}" nginx -s reload
+docker compose -f "${BASE_COMPOSE}" exec -T reverse-proxy nginx -s reload
 
 echo "Rollback complete. Active color: ${target_color}"
