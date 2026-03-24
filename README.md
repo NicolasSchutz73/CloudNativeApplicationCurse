@@ -329,7 +329,7 @@ lint -> build -> test -> sonarcloud -> build images -> push registry -> deploy
 
 ### Fonctionnement du stage `deploy`
 
-Le job `deploy` est déclenché automatiquement uniquement après un `push` sur la branche `develop`, lorsque le job `docker` a terminé avec succès.
+Le job `deploy` est déclenché automatiquement uniquement après un `push` sur la branche `main`, lorsque le job `docker` a terminé avec succès.
 
 Le déploiement est piloté par [`scripts/deploy.sh`](scripts/deploy.sh), qui exécute la séquence suivante sur le runner local :
 
@@ -359,8 +359,8 @@ Le déploiement automatique nécessite :
 
 ### Branche active pour le déploiement
 
-- Le déploiement automatique est actif uniquement sur la branche `develop`.
-- Les `pull_request` sur `develop` exécutent les contrôles CI, mais ne publient pas d'image et ne déclenchent pas le déploiement.
+- Le déploiement automatique est actif uniquement sur la branche `main`.
+- Les `pull_request` sur `main` exécutent les contrôles CI, mais ne publient pas d'image et ne déclenchent pas le déploiement.
 
 ### Images utilisées par Docker Compose
 
