@@ -314,3 +314,59 @@ PART 3 :
 ![img_3.png](img_3.png)
 
 ![img_4.png](img_4.png)
+
+TP 4 : 
+
+## 🔄 Déploiement local automatisé
+
+Le pipeline CI/CD inclut maintenant un job `deploy` exécuté automatiquement sur le runner local après la publication réussie des images Docker sur GHCR.
+
+### Workflow complet
+
+```text
+lint -> build -> test -> sonarcloud -> build images -> push registry -> deploy
+```
+
+### Fonctionnement du stage `deploy`
+
+Le job `deploy` est déclenché automatiquement uniquement après un `push` sur la branche `develop`, lorsque le job `docker` a terminé avec succès.
+
+Le déploiement est piloté par [`scripts/deploy.sh`](scripts/deploy.sh), qui exécute la séquence suivante sur le runner local :
+
+```bash
+docker compose down
+docker pull ghcr.io/<owner>/cloudnative-backend:$GITHUB_SHA
+docker pull ghcr.io/<owner>/cloudnative-frontend:$GITHUB_SHA
+docker compose up -d
+```
+
+### Garanties d'idempotence
+
+- Le script n'utilise jamais `docker compose down --volumes`.
+- Le volume Docker `gym-postgres-data` est conservé entre deux redéploiements.
+- Les images backend et frontend sont tirées depuis GHCR avec le tag exact du commit (`github.sha`).
+- La relance se fait via `docker compose up -d`, ce qui permet de rejouer le déploiement sans intervention manuelle.
+
+### Pré-requis d'exécution
+
+Le déploiement automatique nécessite :
+
+- un runner GitHub Actions `self-hosted` actif sur la machine locale ;
+- Docker et Docker Compose disponibles sur ce runner ;
+- les secrets CI configurés, notamment `SONAR_TOKEN`, `SONAR_ORGANIZATION`, `SONAR_PROJECT_KEY` ;
+- un accès au registre distant GHCR ;
+- une authentification GHCR valide via `GITHUB_TOKEN`.
+
+### Branche active pour le déploiement
+
+- Le déploiement automatique est actif uniquement sur la branche `develop`.
+- Les `pull_request` sur `develop` exécutent les contrôles CI, mais ne publient pas d'image et ne déclenchent pas le déploiement.
+
+### Images utilisées par Docker Compose
+
+`docker-compose.yml` référence désormais les images distantes suivantes :
+
+- `ghcr.io/${GHCR_OWNER}/cloudnative-backend:${IMAGE_TAG}`
+- `ghcr.io/${GHCR_OWNER}/cloudnative-frontend:${IMAGE_TAG}`
+
+En CI, `IMAGE_TAG` est positionné automatiquement sur le SHA du commit déployé. En local, la valeur par défaut reste `latest`, et `docker compose up --build` reste utilisable pour le développement.
