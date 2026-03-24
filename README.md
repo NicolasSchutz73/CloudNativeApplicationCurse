@@ -50,6 +50,71 @@ docker compose down
 docker compose down -v
 ```
 
+## Monitoring & Observability
+
+### Fichiers ajoutés
+
+- `docker-compose.monitoring.yml`
+- `MONITORING.md`
+- `monitoring/prometheus/prometheus.yml`
+- `monitoring/promtail/promtail-config.yml`
+- `monitoring/loki/loki-config.yaml`
+- `monitoring/grafana/provisioning/...`
+- `monitoring/grafana/dashboards/...`
+
+### Variables nécessaires
+
+Ajoutez dans `.env` :
+
+```bash
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=change-me
+```
+
+### Lancement de la stack blue/green
+
+```bash
+docker network create gym-bluegreen-network || true
+docker volume create gym-postgres-data || true
+docker compose -f docker-compose.base.yml up -d
+docker compose -f docker-compose.base.yml -f docker-compose.blue.yml up -d
+```
+
+Le reverse proxy expose maintenant `/metrics` et redirige cette route vers le backend actif.
+
+### Lancement de la stack monitoring
+
+```bash
+docker compose --env-file .env -f docker-compose.monitoring.yml up -d
+```
+
+### Accès aux services
+
+- Grafana : http://localhost:3000
+- Prometheus : http://localhost:9090
+- cAdvisor : http://localhost:8081
+- Endpoint backend métriques via proxy : http://localhost/metrics
+
+### Vérifications attendues pour le TP
+
+```bash
+# Cibles Prometheus
+curl http://localhost:9090/api/v1/targets
+
+# Métriques backend
+curl http://localhost/metrics
+
+# Logs backend dans Loki via Grafana Explore
+docker logs monitoring-promtail
+```
+
+### Dashboards provisionnés
+
+- `TP6 - Backend Metrics`
+- `TP6 - Logs & Correlation`
+
+Ils sont chargés automatiquement au démarrage de Grafana.
+
 ## 🐳 Docker Images
 
 Pre-built Docker images are available on GitHub Container Registry (GHCR):
@@ -415,10 +480,9 @@ cat proxy/state/active_color
 docker logs reverse-proxy
 ```
 
-![img_5.png](img_5.png)
+TP 6 : 
 
-![img_6.png](img_6.png)
-
-![img_7.png](img_7.png)
-
-![img_8.png](img_8.png)
+![tp6-backend-metrics-endpoint.png](tp6-backend-metrics-endpoint.png)
+![tp6-grafana-backend-metrics.png](tp6-grafana-backend-metrics.png)
+![tp6-grafana-logs-correlation.png](tp6-grafana-logs-correlation.png)
+![tp6-prometheus-targets.png](tp6-prometheus-targets.png)

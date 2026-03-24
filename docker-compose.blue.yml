@@ -1,6 +1,9 @@
 services:
   backend-blue:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-backend:${BLUE_IMAGE_TAG:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-gym_management}
@@ -20,6 +23,11 @@ services:
 
   frontend-blue:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-frontend:${BLUE_IMAGE_TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     restart: unless-stopped
     depends_on:
       backend-blue:
