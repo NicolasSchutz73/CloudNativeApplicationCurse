@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: gym-postgres
@@ -20,7 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API
   backend:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-backend:${IMAGE_TAG:-latest}
     build:
@@ -32,7 +30,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       NODE_ENV: ${NODE_ENV}
       PORT: ${PORT}
-      FRONTEND_URL: http://frontend:80
+      FRONTEND_URL: http://localhost:8080
     ports:
       - "3000:3000"
     depends_on:
@@ -40,8 +38,12 @@ services:
         condition: service_healthy
     networks:
       - gym-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Frontend Vue.js
   frontend:
     image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-frontend:${IMAGE_TAG:-latest}
     build:
@@ -54,9 +56,15 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - gym-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   gym-network:

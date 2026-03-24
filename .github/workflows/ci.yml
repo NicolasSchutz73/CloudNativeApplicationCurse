@@ -139,7 +139,7 @@ jobs:
         run: docker build -t backend-ci ./backend
 
       - name: Build Frontend Docker Image
-        run: docker build -t frontend-ci ./frontend
+        run: docker build --build-arg VITE_API_BASE_URL=/api -t frontend-ci ./frontend
 
       - name: Healthcheck Backend
         run: |
@@ -172,8 +172,8 @@ jobs:
           docker tag frontend-ci ghcr.io/${OWNER}/cloudnative-frontend:${{ github.sha }}
           docker push ghcr.io/${OWNER}/cloudnative-frontend:${{ github.sha }}
 
-  deploy:
-    name: Deploy Application
+  blue-green-deploy:
+    name: Blue Green Deploy
     runs-on: self-hosted
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -185,11 +185,11 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Make deploy script executable
-        run: chmod +x scripts/deploy.sh
+      - name: Make deploy scripts executable
+        run: chmod +x scripts/blue-green-deploy.sh scripts/rollback.sh
 
-      - name: Deploy latest published images
+      - name: Deploy inactive color and switch proxy
         env:
           GITHUB_SHA: ${{ github.sha }}
           GHCR_OWNER: ${{ github.repository_owner }}
-        run: ./scripts/deploy.sh
+        run: ./scripts/blue-green-deploy.sh

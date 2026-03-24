@@ -1,0 +1,35 @@
+services:
+  backend-blue:
+    image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-backend:${BLUE_IMAGE_TAG:-latest}
+    container_name: backend-blue
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      FRONTEND_URL: http://localhost
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gym-bluegreen-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend-blue:
+    image: ghcr.io/${GHCR_OWNER:-nicolasschutz73}/cloudnative-frontend:${BLUE_IMAGE_TAG:-latest}
+    container_name: frontend-blue
+    restart: unless-stopped
+    depends_on:
+      backend-blue:
+        condition: service_healthy
+    networks:
+      - gym-bluegreen-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

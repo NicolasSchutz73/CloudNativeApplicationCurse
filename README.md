@@ -317,59 +317,103 @@ PART 3 :
 
 TP 4 : 
 
-## 🔄 Déploiement local automatisé
+## 🔵🟢 Déploiement blue/green
 
-Le pipeline CI/CD inclut maintenant un job `deploy` exécuté automatiquement sur le runner local après la publication réussie des images Docker sur GHCR.
+Le pipeline CI/CD inclut maintenant un job `blue-green-deploy` execute automatiquement sur le runner local apres la publication reussie des images Docker sur GHCR.
 
 ### Workflow complet
 
 ```text
-lint -> build -> test -> sonarcloud -> build images -> push registry -> deploy
+lint -> build -> test -> sonarcloud -> build images -> push registry -> blue-green-deploy
 ```
 
-### Fonctionnement du stage `deploy`
+### Architecture
 
-Le job `deploy` est déclenché automatiquement uniquement après un `push` sur la branche `main`, lorsque le job `docker` a terminé avec succès.
+```text
+[Client] -> [Reverse Proxy Nginx] -> [Blue frontend/backend]
+                                 \-> [Green frontend/backend]
+```
 
-Le déploiement est piloté par [`scripts/deploy.sh`](scripts/deploy.sh), qui exécute la séquence suivante sur le runner local :
+- `blue` = couleur actuellement exposee par le proxy
+- `green` = couleur candidate a deployer, ou l'inverse
+- Postgres reste unique et partage par les deux couleurs
+
+### Fichiers Docker Compose
+
+- `docker-compose.base.yml` : Postgres + reverse proxy
+- `docker-compose.blue.yml` : `frontend-blue` + `backend-blue`
+- `docker-compose.green.yml` : `frontend-green` + `backend-green`
+- `docker-compose.yml` : stack locale simple conservee pour le developpement classique
+
+Commandes utiles :
 
 ```bash
-docker compose down
-docker pull ghcr.io/<owner>/cloudnative-backend:$GITHUB_SHA
-docker pull ghcr.io/<owner>/cloudnative-frontend:$GITHUB_SHA
-docker compose up -d
+docker compose -f docker-compose.base.yml up -d
+docker compose -f docker-compose.base.yml -f docker-compose.blue.yml up -d
+docker compose -f docker-compose.base.yml -f docker-compose.green.yml up -d
 ```
 
-### Garanties d'idempotence
+### Fonctionnement du stage `blue-green-deploy`
 
-- Le script n'utilise jamais `docker compose down --volumes`.
-- Le volume Docker `gym-postgres-data` est conservé entre deux redéploiements.
-- Les images backend et frontend sont tirées depuis GHCR avec le tag exact du commit (`github.sha`).
-- La relance se fait via `docker compose up -d`, ce qui permet de rejouer le déploiement sans intervention manuelle.
+Le stage est execute uniquement apres un `push` sur la branche `main`.
 
-### Pré-requis d'exécution
+Le script [`scripts/blue-green-deploy.sh`](scripts/blue-green-deploy.sh) :
 
-Le déploiement automatique nécessite :
+1. lit la couleur active dans `proxy/state/active_color`
+2. choisit la couleur inactive
+3. tire les images GHCR backend et frontend taguees avec `github.sha`
+4. deploye uniquement la couleur inactive
+5. attend les healthchecks
+6. met a jour `proxy/upstreams/active-upstream.conf`
+7. recharge Nginx avec `nginx -s reload`
+8. laisse l'ancienne couleur demarree pour un rollback quasi instantane
 
-- un runner GitHub Actions `self-hosted` actif sur la machine locale ;
-- Docker et Docker Compose disponibles sur ce runner ;
-- les secrets CI configurés, notamment `SONAR_TOKEN`, `SONAR_ORGANIZATION`, `SONAR_PROJECT_KEY` ;
-- un accès au registre distant GHCR ;
-- une authentification GHCR valide via `GITHUB_TOKEN`.
+### Reverse proxy
 
-### Branche active pour le déploiement
+Le reverse proxy recoit le trafic sur :
 
-- Le déploiement automatique est actif uniquement sur la branche `main`.
-- Les `pull_request` sur `main` exécutent les contrôles CI, mais ne publient pas d'image et ne déclenchent pas le déploiement.
+- [http://localhost](http://localhost)
 
-### Images utilisées par Docker Compose
+Il route :
 
-`docker-compose.yml` référence désormais les images distantes suivantes :
+- `/` vers le frontend actif
+- `/api` vers le backend actif
+- `/health` vers le backend actif
 
-- `ghcr.io/${GHCR_OWNER}/cloudnative-backend:${IMAGE_TAG}`
-- `ghcr.io/${GHCR_OWNER}/cloudnative-frontend:${IMAGE_TAG}`
+La couleur active est stockee dans :
 
-En CI, `IMAGE_TAG` est positionné automatiquement sur le SHA du commit déployé. En local, la valeur par défaut reste `latest`, et `docker compose up --build` reste utilisable pour le développement.
+- `proxy/state/active_color`
+
+La cible Nginx active est definie dans :
+
+- `proxy/upstreams/active-upstream.conf`
+
+### Rollback
+
+Le rollback ne redeploie pas l'ancienne version si elle est toujours demarree. Il suffit de rebascule le proxy :
+
+```bash
+./scripts/rollback.sh blue
+./scripts/rollback.sh green
+```
+
+### Conditions d'execution
+
+- Le blue/green automatique est actif uniquement sur `main`
+- Les `pull_request` sur `main` executent les controles CI, mais pas le deploiement
+- Le runner GitHub Actions `self-hosted` doit etre actif
+- Docker Desktop doit etre demarre sur la machine locale
+- Les secrets SonarCloud et l'acces GHCR doivent etre valides
+
+### Debug
+
+```bash
+docker compose -f docker-compose.base.yml ps
+docker compose -f docker-compose.base.yml -f docker-compose.blue.yml ps
+docker compose -f docker-compose.base.yml -f docker-compose.green.yml ps
+cat proxy/state/active_color
+docker logs reverse-proxy
+```
 
 ![img_5.png](img_5.png)
 
