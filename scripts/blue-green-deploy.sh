@@ -13,6 +13,7 @@ HEALTHCHECK_RETRIES="${HEALTHCHECK_RETRIES:-30}"
 HEALTHCHECK_SLEEP_SECONDS="${HEALTHCHECK_SLEEP_SECONDS:-2}"
 NETWORK_NAME="${NETWORK_NAME:-gym-bluegreen-network}"
 VOLUME_NAME="${VOLUME_NAME:-gym-postgres-data}"
+LEGACY_PROXY_CONTAINER="${LEGACY_PROXY_CONTAINER:-reverse-proxy}"
 
 : "${GITHUB_SHA:?GITHUB_SHA must be set}"
 : "${GHCR_OWNER:?GHCR_OWNER must be set}"
@@ -116,6 +117,11 @@ ensure_base_stack() {
 
   if [[ ! -f "${ACTIVE_UPSTREAM_FILE}" ]]; then
     write_active_upstream "blue"
+  fi
+
+  if docker inspect "${LEGACY_PROXY_CONTAINER}" >/dev/null 2>&1; then
+    echo "Removing legacy proxy container ${LEGACY_PROXY_CONTAINER} to free port 80"
+    docker rm -f "${LEGACY_PROXY_CONTAINER}" >/dev/null
   fi
 
   docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1 || docker network create "${NETWORK_NAME}" >/dev/null
